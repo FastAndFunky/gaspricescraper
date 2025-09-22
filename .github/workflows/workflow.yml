@@ -1,0 +1,66 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+
+name: Python script workflow
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: "5 2 * * *"  # Run 02:05 UTC, every night
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-python-script:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+   
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        pip install requests
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Run Python script Bensinpriser
+      run: python scrapebensinpriser.py
+
+    - name: Run Python script Bensinstation
+      run: python scrapebensinstation.py
+
+    - name: Commit and push changes
+      if: success() && hashFiles('.data_updated') != ''
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        RUN_DATE=$(date +'%Y-%m-%d')
+  
+        # Stage all updated data files
+        git add fund_data.json bensinstation_prices.csv bensinpriser_prices.csv
+  
+        # Only commit if there are actual changes
+        if ! git diff --cached --quiet; then
+          git commit -m "Update data files for ${RUN_DATE} [skip ci]"
+          git push
+        else
+          echo "No changes to commit"
+        fi
