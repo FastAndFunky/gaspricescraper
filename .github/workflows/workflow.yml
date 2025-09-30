@@ -52,17 +52,25 @@ jobs:
     - name: Commit and push changes
       if: success() && hashFiles('.data_updated') != ''
       run: |
+        # Configure git identity for the bot
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    
+        # Store current date for the commit message
         RUN_DATE=$(date +'%Y-%m-%d')
-  
-        # Stage all updated data files
-        git add fund_data.json bensinstation_prices.csv bensinpriser_prices.csv
-  
-        # Only commit if there are actual changes
+    
+        # Stage all data files that your Python scripts produce/update
+        # bensinstation_prices.csv → from scrapebensinstation.py
+        # bensinpriser_prices.csv  → from bensinpriser.py
+        git add bensinstation_prices.csv bensinpriser_prices.csv
+    
+        # Check if any staged files are actually different from last commit
+        # If yes → create a commit and push it
+        # If no  → skip commit to avoid empty "no-op" commits
         if ! git diff --cached --quiet; then
           git commit -m "Update data files for ${RUN_DATE} [skip ci]"
           git push
         else
           echo "No changes to commit"
         fi
+
