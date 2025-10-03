@@ -1,11 +1,9 @@
-Bolag,Bensinpris,Dieselpris,Etanol,Datum,ScrapeDate,Source
-OKQ8,15.99,16.89,13.09,Igår,2025-09-18,
-Circle K,15.99,16.89,13.09,2 dagar sedan,2025-09-19,
-OKQ8,15.99,16.89,13.09,Idag,2025-09-22,bensinstation.nu
-Circle K,15.99,16.89,13.09,Idag,2025-09-22,bensinstation.nu
-OKQ8,16.09,16.94,13.64,Igår,2025-10-01,bensinstation.nu
-Circle K,16.09,16.94,13.64,Igår,2025-10-01,bensinstation.nu
-OKQ8,16.09,16.94,13.64,2 dagar sedan,2025-10-02,bensinstation.nu
-Circle K,16.09,16.94,13.64,2 dagar sedan,2025-10-02,bensinstation.nu
+Bolag,Bensinpris,Dieselpris,Etanol,Datum,ScrapeDate
+OKQ8,15.99,16.89,13.09,2025-09-17,2025-09-18,
+Circle K,15.99,16.89,13.09,2025-09-17,2025-09-19,
+OKQ8,15.99,16.89,13.09,2025-09-22,2025-09-22,
+Circle K,15.99,16.89,13.09,2025-09-22,2025-09-22,
+OKQ8,16.09,16.94,13.64,2025-09-30,2025-10-01,
+Circle K,16.09,16.94,13.64,2025-09-30,2025-10-01,
 OKQ8,15.94,16.84,14.09,2025-10-02,2025-10-03,
 Circle K,15.94,16.84,14.09,2025-10-02,2025-10-03,
