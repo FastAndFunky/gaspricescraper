@@ -42,7 +42,7 @@ FUEL_URLS = {
     "Etanol": "https://bensinpriser.nu/stationer/etanol/alla/alla",
 }
 
-MIN_PRICE = {"95 (E10)": 14.0, "98": 14.0, "Diesel": 14.0, "Etanol": 11.0}
+MIN_PRICE = {"95 (E10)": 12.4, "98": 13.0, "Diesel": 14.0, "Etanol": 10.0}
 MAX_PRICE = {"95 (E10)": 27.0, "98": 30.0, "Diesel": 35.0, "Etanol": 35.0}
 ROW_LIMITS = {"95 (E10)": 6, "98": 3, "Diesel": 6, "Etanol": 3}
 COLS_ORDER = ["Station", "Price", "Date", "Fuel", "ScrapeDate", "Source"]
