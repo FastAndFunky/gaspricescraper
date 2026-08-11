@@ -114,8 +114,18 @@ def normalize_date_str(raw, today=None):
         except ValueError:
             return None
 
-    # dd/mm — assume current year unless that would put the date in the
-    # future, in which case assume the previous year.
+    # d/m-yy — current site format, e.g. "11/8-26" -> 2026-08-11
+    m_yy = re.match(r"^(\d{1,2})/(\d{1,2})-(\d{2})$", s)
+    if m_yy:
+        day, month, yy = int(m_yy.group(1)), int(m_yy.group(2)), int(m_yy.group(3))
+        year = 2000 + yy
+        try:
+            return date(year, month, day).isoformat()
+        except ValueError:
+            return None
+
+    # dd/mm (no year) — assume current year unless that would put the date
+    # in the future, in which case assume the previous year.
     m = re.match(r"^(\d{1,2})/(\d{1,2})$", s)
     if m:
         day, month = int(m.group(1)), int(m.group(2))
@@ -185,7 +195,23 @@ def is_valid_date_pair(date_iso, scrape_date_iso):
 # ---------- Scrape a single URL ----------
 def scrape_one_url(session, url, fuel_key, today_iso):
     """Return list of normalized row dicts scraped from one fuel page.
-    Raises on network failure so the caller can isolate/skip this fuel."""
+    Raises on network failure so the caller can isolate/skip this fuel.
+
+    Current site markup (as of Aug 2026), per station:
+        <li>
+          <div class="cp-info">
+            <div class="cp-title"><b>Station Name</b> <span class="cp-commune">Kommun</span></div>
+            <div class="cp-meta">
+              <span class="cp-meta-who is-owner">★ Ägare</span>
+              <span class="cp-sep">·</span>
+              <span class="cp-date">11/8-26</span>
+            </div>
+          </div>
+          <div class="cp-right">
+            <div class="cp-price">13,64<small>kr</small></div>
+          </div>
+        </li>
+    """
     resp = session.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
@@ -193,15 +219,28 @@ def scrape_one_url(session, url, fuel_key, today_iso):
     fk = normalize_fuel(fuel_key)
     skipped_unparseable = 0
 
-    rows = soup.find_all("tr", class_="table-row")
-    if not rows:
-        log.warning("No rows found for %s at %s — page markup may have changed.", fk, url)
+    price_table = soup.select_one("#price_table")
+    items = price_table.find_all("li", recursive=False) if price_table else []
+    if not items:
+        log.warning("No <li> items found for %s at %s — page markup may have changed.", fk, url)
 
-    for tr in rows:
-        tds = tr.find_all("td")
-        if not tds:
+    for li in items:
+        title_div = li.select_one("div.cp-info > div.cp-title")
+        price_div = li.select_one("div.cp-right > div.cp-price")
+        date_span = li.select_one("div.cp-info > div.cp-meta > span.cp-date")
+
+        # Filler/ad/pagination <li> items have no title or price — skip quietly.
+        if title_div is None or price_div is None:
             continue
-        station = tds[0].get_text(strip=True)
+
+        name_tag = title_div.find("b")
+        station_name = name_tag.get_text(strip=True) if name_tag else title_div.get_text(strip=True)
+        commune_tag = title_div.find(class_="cp-commune")
+        commune = commune_tag.get_text(strip=True) if commune_tag else ""
+        # Fold commune into the station identity to disambiguate same-named
+        # stations in different towns (the page itself groups by this).
+        station = f"{station_name} ({commune})" if commune else station_name
+
         s_low = station.lower()
         if (
             "costco" in s_low
@@ -212,17 +251,9 @@ def scrape_one_url(session, url, fuel_key, today_iso):
         ):
             continue
 
-        price_val = None
-        date_iso = None
-        if len(tds) > 1:
-            price_td = tds[1]
-            small = price_td.find("small")
-            if small:
-                raw_date = small.get_text(strip=True)
-                date_iso = normalize_date_str(raw_date)
-                small.extract()
-            price_txt = price_td.get_text(strip=True)
-            price_val = parse_number(price_txt)
+        raw_date = date_span.get_text(strip=True) if date_span else None
+        date_iso = normalize_date_str(raw_date)
+        price_val = parse_number(price_div.get_text(strip=True))
 
         if price_val is None or date_iso is None:
             skipped_unparseable += 1
